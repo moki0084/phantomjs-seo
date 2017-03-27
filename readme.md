@@ -6,6 +6,11 @@ nginx匹配搜索引擎UA反向代理到当前seo服务器，seo服务器通过p
 
 phantomjs爬对应url，超时响应为5秒，超时url需记录到日志。
 
+install
+
+    npm i
+    npm i -g phantomjs
+
 run
 
     npm run start

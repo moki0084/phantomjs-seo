@@ -20,7 +20,10 @@
   },
   "dependencies": {
     "body-parser": "~1.16.0",
-    "express": "~4.14.1",
-    "cross-spawn": "^5.1.0"
+    "cross-spawn": "^5.1.0",
+    "express": "~4.14.1"
+  },
+  "devDependencies": {
+    "mkdirp": "^0.5.1"
   }
 }

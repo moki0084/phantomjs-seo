@@ -2,7 +2,8 @@ let express = require('express');
 let fs = require('fs');
 let path = require('path');
 let bodyParser = require('body-parser');
-let spawn = require('cross-spawn')
+let spawn = require('cross-spawn');
+let mkdirp = require('mkdirp');
 
 let app = express();
 
@@ -11,14 +12,31 @@ app.use(bodyParser.urlencoded({
     extended: false
 }));
 
-let mkdirsSync = function mkdirsSync(dirname) {
-    if (!fs.existsSync(dirname)) {
-        if (mkdirsSync(path.dirname(dirname))) {
-            fs.mkdirSync(dirname);
-        }
-    }
-    return true;
-};
+function mkdirs(dirname) {
+    return new Promise(function (resolve, reject) {
+        mkdirp(dirname, function (err) {
+            if (err) {
+                reject(err);
+            }
+            else {
+                resolve();
+            }
+        });
+    })
+}
+
+function readFile(dirname) {
+    return new Promise(function (resolve, reject) {
+        fs.readFile(dirname, function (err, data) {
+            if (err) {
+                reject(err);
+            }
+            else {
+                resolve(data.toString('utf8'));
+            }
+        })
+    })
+}
 
 app.get('*', function (req, res) {
     let url = req.protocol + '://' + req.headers.host + req.originalUrl;
@@ -38,10 +56,9 @@ app.get('*', function (req, res) {
     }
     fileName = encodeURIComponent(fileName);
     //nginx 可处理 文件是否存在直接返回
-    try {
-        let rData = fs.readFileSync(filePath + fileName + '.html');
-        res.send(rData.toString('utf8'));
-    } catch (e) {
+    readFile(filePath + fileName + '.html').then(function (data) {
+        res.send(data);
+    }).catch(function () {
         phantom = spawn('phantomjs', ['spider.js', url]);
         phantom.stdout.setEncoding('utf8');
         phantom.stdout.on('data', function (data) {
@@ -60,19 +77,20 @@ app.get('*', function (req, res) {
                 default:
                     let w_data = content;
                     w_data = Buffer.from(w_data);
-                    mkdirsSync(filePath);
-                    fs.writeFile(filePath + '/' + fileName + '.html', w_data, {
-                        flag: 'w'
-                    }, function (err) {
-                        if (err) {
-                            console.error(err);
-                        }
-                    });
-                    res.send(content);
+                    mkdirs(filePath).then(function () {
+                        fs.writeFile(filePath + '/' + fileName + '.html', w_data, {
+                            flag: 'w'
+                        }, function (err) {
+                            if (err) {
+                                console.error(err);
+                            }
+                        });
+                        res.send(content);
+                    }).catch(function (err) { })
                     break;
             }
         });
-    }
+    })
 });
 
 module.exports = app;
